@@ -1,0 +1,9 @@
+[project]
+name = "mojolt"
+version = "0.2.0"
+description = "WebSocket client and epoll server for Mojo"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "mojo==1.2.0",
+]
