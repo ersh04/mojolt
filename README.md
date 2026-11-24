@@ -74,8 +74,6 @@ The C bridge in `native/transport.c` wraps Linux socket and event APIs. Applicat
 
 The detailed guides are currently available in Russian:
 
-- [WebSocket fundamentals and library internals](docs_test/WEBSOCKETS_RU.md): TCP, the opening handshake, frames, messages, `epoll`, the API, configuration, and troubleshooting.
-- [Repairs and validation](docs_test/REPAIR_REPORT_RU.md): implementation changes, compatibility, and tests.
 - [Echo server](src/main.mojo) and [client](examples/client.mojo): buildable examples.
 
 ## Current limitations
