@@ -38,10 +38,10 @@ struct Transport(Movable):
         if result < 0:
             raise transport_error("getsockname")
         return Int(result)
-    def listen(mut self, var host: String, port: Int) raises:
-        if port < 0 or port > 65535:
+    def listen(mut self, var host: String, port: Int, reuse_port: Bool = False, backlog: Int = 128) raises:
+        if port < 0 or port > 65535 or backlog < 1:
             raise Error("Invalid port")
-        var fd = external_call["ws_listen", Int32](host.as_c_string_span(), Int32(port))
+        var fd = external_call["ws_listen_config", Int32](host.as_c_string_span(), Int32(port), Int32(reuse_port), Int32(backlog))
         if fd < 0:
             raise transport_error("listen")
         self.close()

@@ -40,7 +40,7 @@ int ws_poll(int fd, int writing, int timeout_ms) {
  * DNS is synchronous; the TCP deadline begins after resolution. Each failed
  * candidate is closed before trying another, and the address list is always freed.
  */
-static int ws_address(const char *host, int port, int listener, int timeout_ms) {
+static int ws_address(const char *host, int port, int listener, int timeout_ms, int reuse_port, int backlog) {
     struct addrinfo hints = {0}, *addresses = NULL;
     char service[6];
     snprintf(service, sizeof service, "%d", port);
@@ -57,7 +57,9 @@ static int ws_address(const char *host, int port, int listener, int timeout_ms) 
         if (fd < 0) { saved_error=errno; continue; }
         if (listener) {
             int yes = 1;
-            if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) || bind(fd, p->ai_addr, p->ai_addrlen) || listen(fd, 128)) {
+            if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes) ||
+                (reuse_port && setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &yes, sizeof yes)) ||
+                bind(fd, p->ai_addr, p->ai_addrlen) || listen(fd, backlog)) {
                 saved_error=errno; close(fd); continue;
             }
             result=fd; break;
@@ -84,8 +86,13 @@ static int ws_address(const char *host, int port, int listener, int timeout_ms) 
     if (result < 0) errno=saved_error;
     return result;
 }
-int ws_listen(const char *host, int port) { return ws_address(host, port, 1, 0); }
-int ws_connect(const char *host, int port, int timeout_ms) { return ws_address(host, port, 0, timeout_ms); }
+int ws_listen(const char *host, int port) { return ws_address(host, port, 1, 0, 0, 128); }
+/* Each reuseport listener sets options before bind and owns its accept queue. */
+int ws_listen_config(const char *host, int port, int reuse_port, int backlog) {
+    if (port < 0 || port > 65535 || backlog < 1) { errno=EINVAL; return -1; }
+    return ws_address(host, port, 1, 0, reuse_port, backlog);
+}
+int ws_connect(const char *host, int port, int timeout_ms) { return ws_address(host, port, 0, timeout_ms, 0, 128); }
 int ws_port(int fd) {
     struct sockaddr_storage address;
     socklen_t length=sizeof address;

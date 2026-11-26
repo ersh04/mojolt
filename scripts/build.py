@@ -30,7 +30,13 @@ def main():
     if not version.startswith("Mojo 1.2.0 "):
         raise SystemExit(f"Expected Mojo 1.2.0, got {version.strip()}")
     bridge = BUILD / "transport.o"
-    run([os.environ.get("CC", "cc"), "-std=c11", "-Wall", "-Wextra", "-Werror", "-fPIC", "-c", str(ROOT / "native/transport.c"), "-o", str(bridge)])
+    native_objects = []
+    for name in ("transport", "threading", "control"):
+        output = BUILD / (name + "-native.o")
+        run([os.environ.get("CC", "cc"), "-std=c11", "-Wall", "-Wextra", "-Werror", "-pedantic", "-pthread", "-fPIC", "-c", str(ROOT / "native" / (name + ".c")), "-o", str(output)])
+        native_objects.append(str(output))
+    # Keep the public link command stable by combining the platform bridges.
+    run([os.environ.get("CC", "cc"), "-r", *native_objects, "-o", str(bridge)])
     # Present the existing src/websockets tree under its public package name.
     # main.mojo stays outside the package: executables cannot be precompiled as
     # package members. The symlink tracks source edits without copying a cache.
@@ -48,9 +54,14 @@ def main():
     run([compiler, "precompile", "-I", str(source_root), str(package), "-o", str(BUILD / "mojolt.mojoc")])
     targets = {
         "unit": "tests/unit.mojo", "protocol": "tests/protocol.mojo",
+        "libc": "tests/libc.mojo",
+        "thread-interop": "tests/thread_interop.mojo",
+        "worker-fixture": "tests/worker_fixture.mojo",
+        "workers": "tests/workers.mojo",
         "server-fixture": "tests/server_fixture.mojo",
         "client-fixture": "tests/client_fixture.mojo", "echo": "src/main.mojo",
         "example-client": "examples/client.mojo",
+        "example-multithreaded": "examples/multithreaded_server.mojo",
     }
     requested = sys.argv[1:] or list(targets)
     for target in requested:

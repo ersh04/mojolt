@@ -19,7 +19,7 @@ def make_case(executable, name):
     return run
 
 
-for executable in ("unit", "protocol"):
+for executable in ("unit", "protocol", "libc", "workers"):
     source = ROOT / "tests" / (executable + ".mojo")
     for name in re.findall(r"^def (test_\w+)\(", source.read_text(), re.MULTILINE):
         setattr(MojoRegressionTests, "test_" + executable + "_" + name[5:], make_case(executable, name))
